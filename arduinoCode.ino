@@ -18,12 +18,12 @@ const int ledBrightness = 200;     // Adjust this value for desired brightness
 DHT dht(dhtPin, DHTTYPE); // Create DHT object
 
 void setup() {
-    Serial.begin(9600);             // Initialize serial communication
-    dht.begin();                    // Initialize DHT sensor
+    Serial.begin(9600);                   // Initialize serial communication
+    dht.begin();                          // Initialize DHT sensor
     pinMode(photoResistorLEDPin, OUTPUT); // Set photoresistor LED as output
     pinMode(mq135LEDPin, OUTPUT);         // Set MQ135 LED as output
     pinMode(dhtLEDPin, OUTPUT);           // Set DHT LED as output
-    delay(1000);                    // Wait for sensors to stabilize
+    delay(1000);                          // Wait for sensors to stabilize
 }
 
 void loop() {
