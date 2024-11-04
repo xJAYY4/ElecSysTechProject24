@@ -11,7 +11,7 @@ try:
     arduino = serial.Serial(serial_port, baud_rate)
     print("Connected to Arduino successfully!")
 
-    # Catch for Failed Connection
+    # Failed Connection Feedback
 except serial.SerialException as e:
     print(f"Error: Could not open port {serial_port}. {e}")
     exit()
