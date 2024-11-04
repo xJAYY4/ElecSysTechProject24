@@ -1,6 +1,7 @@
 Environmental Monitoring System
 
 **********Overview**********
+
 This project involves the development of an environmental monitoring system that collects data from various sensors, processes the data, and presents predictions through a dashboard. 
 The system utilizes an Arduino (and Raspberry Pi) to interface with sensors, logs data in CSV format, uploads it to Google Drive, and employs predictive modeling techniques for analysis and visualization.
 
@@ -35,16 +36,24 @@ New data is continuously collected, and the model is updated periodically to imp
 The dashboard is adjusted to reflect new insights or changes in the model's performance.
 
 ****************Requirements****************
+
 Hardware: Arduino, Raspberry Pi, DHT11 sensor, MQ135 sensor, photoresistor, RTC and necessary wiring.
+
 Software:
 Python 3.x
 Required libraries: Pandas, Matplotlib, Scikit-learn, TensorFlow, Streamlit or Dash, PyDrive
 Arduino IDE (for Arduino-based systems)
 
 ****************Getting Started****************
+
 Setup the Hardware: Connect the sensors to the Arduino or Raspberry Pi.
+
 Install Required Software: Ensure Python and the necessary libraries are installed.
+
 Upload Data Logging Script: Implement and run the data logging script to collect sensor data.
+
 Upload to Google Drive: Configure the Google Drive API for automated uploads.
+
 Data Analysis: Access the CSV file for data preprocessing and modeling.
+
 Create Dashboard: Use visualization tools to build and deploy the dashboard.
