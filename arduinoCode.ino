@@ -12,15 +12,19 @@ const int photoResistorLEDPin = 7;  // LED for photoresistor
 const int mq135LEDPin = 5;          // LED for MQ135
 const int dhtLEDPin = 6;            // LED for DHT11
 
+
 // Define LED brightness level (0-255)
 const int ledBrightness = 200;      // This value adjusts the LED's brightness
+
 
 // Define DHT sensor type
 #define DHTTYPE DHT11
 DHT dht(dhtPin, DHTTYPE);    // Create DHT object
 
+
 // Create an RTC object
 RTC_DS1307 rtc;   // This object will allow us to interact with the RTC
+
 
 void setup() {
     Serial.begin(9600);                   // Initialize serial communication for data transmission
@@ -39,6 +43,7 @@ void setup() {
     }
 }
 
+
 void loop() {
     // Read data from sensors
     int lightValue = analogRead(photoResistorPin);
@@ -47,6 +52,7 @@ void loop() {
     float humidity = dht.readHumidity();
     float temperature = dht.readTemperature();
 
+    
     // If RTC is available, get the current date and time
     DateTime now;
     if (rtc.begin()) {
@@ -56,13 +62,26 @@ void loop() {
 
     // Check if the DHT11 readings are valid (DHT sensor might occasionally fail to read)
     if (!isnan(humidity) && !isnan(temperature)) {
+        // Send the timestamp from RTC along with the sensor data
+        Serial.print(now.year(), DEC);
+        Serial.print("/");
+        Serial.print(now.month(), DEC);
+        Serial.print("/");
+        Serial.print(now.day(), DEC);
+        Serial.print(" ");
+        Serial.print(now.hour(), DEC);
+        Serial.print(":");
+        Serial.print(now.minute(), DEC);
+        Serial.print(":");
+        Serial.print(now.second(), DEC);
+        Serial.print(",");
         
         // Print the sensor readings in CSV-like format
-        // No TimeStamp in Arduino Data as it will print twice in the csv, (Python adds Timestamp)
         Serial.print(lightLevel); Serial.print(",");
         Serial.print(mq135Value); Serial.print(",");
         Serial.print(humidity); Serial.print(",");
         Serial.println(temperature);
+        
     } else {
         Serial.println("Error reading DHT11 sensor!");
     }
