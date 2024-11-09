@@ -1,52 +1,73 @@
-import serial
-import csv
-import time
+import serial       # Import the pySerial library for serial communication
+import csv          # Import the CSV library for writing data to CSV files
+import time         # Import the time library for working with timestamps
+import os           # Import the os library for checking file existence and file properties
 
-# Serial Port Config
-serial_port = 'COM5'
-baud_rate = 9600
+
+# Serial Port Configurations
+serial_port = 'COM5'           # Define the COM port that the Arduino is connected to (change this for pi)
+baud_rate = 9600               # Define the baud rate for serial communication (This will match Arduino)
+
 
 try:
-    # Initialize serial connection
-    arduino = serial.Serial(serial_port, baud_rate)
-    print("Connected to Arduino successfully!")
+    # Initialize serial connection with Arduino
+    arduino = serial.Serial(serial_port, baud_rate) # Open the serial connection
+    time.sleep(2)  # Wait for the connection to stabilize and ensure data is ready
+    print("Connected to Arduino successfully!")     # Confirm successful connection
 
-    # Failed Connection Feedback
 except serial.SerialException as e:
+    # Handle errors if the serial connection cannot be established
     print(f"Error: Could not open port {serial_port}. {e}")
     exit()
 
+
+# CSV file where the sensor data will be saved
 csv_filename = 'sensor_data.csv'
 
-# Open the file in append mode to keep adding data
+
+# Check if file exists
+file_exists = os.path.exists(csv_filename)
+
+
+# Open the CSV file in append mode to continuously add new data without overwriting
 with open(csv_filename, mode='a', newline='') as csv_file:
     csv_writer = csv.writer(csv_file)
 
-    # Write header if file is empty
-    csv_file.seek(0, 2)  # Go to end of file
-    if csv_file.tell() == 0:  # Check if the file is empty
-        csv_writer.writerow(["Light Level (%)", "Gas Concentration (MQ135)", "Humidity (%)", "Temperature (°C)"])
+    # Write header if the file is empty
+    if not file_exists or os.path.getsize(csv_filename) == 0:  # Check if file is empty
+        csv_writer.writerow(["Timestamp", "Light Level (%)", "Gas Concentration (MQ135)", "Humidity (%)", "Temperature (°C)"])
 
-    # Continuously read data from serial and write to CSV
+    # Continuously read data from Arduino and write to CSV
     try:
         while True:
             # Read line from Arduino
-            data = arduino.readline().decode('utf-8').strip()
+            data = arduino.readline().decode('utf-8').strip() # Decode the byte data to string and remove excess whitespace
+            print(f"Raw data received: '{data}'")             # Debugging line to show raw data in output
+
+            # Skip data if an error message is received from the Arduino
             if "Error" in data:
                 print("Sensor error, skipping entry.")
                 continue
 
+
             # Split the data into values
             values = data.split(",")
-            if len(values) == 4:  # Ensure all fields are present
-                csv_writer.writerow(values)
-                csv_file.flush()  # Ensure data is written to disk
-                print(f"Logged data: {values}")
+            if len(values) == 4:  # Now check for 4 values (no timestamp in Arduino data)
+                # Prepend timestamp to the data
+                timestamp = time.strftime('%Y-%m-%d %H:%M:%S')  # Get current time
+                row = [timestamp] + values  # Add timestamp at the beginning
+
+                # Write the row to CSV
+                csv_writer.writerow(row)
+                csv_file.flush()             # Ensure data is written to disk
+                print(f"Logged data: {row}") # Print the logged data to the console for monitoring
             else:
-                print("Incomplete data received")
+                print("Incomplete or malformed data received, skipping entry.")
 
             time.sleep(5)
     except KeyboardInterrupt:
+        # Handle user interrupt (Ctrl+C) to stop the data collection loop
         print("Data collection stopped.")
     finally:
+        # Ensure the serial connection is properly closed
         arduino.close()
