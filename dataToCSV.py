@@ -3,7 +3,7 @@ import csv          # Import the CSV library for writing data to CSV files
 import os           # Import the os library for checking file existence and file properties
 
 
-# Serial Port Config (Adjust based on your Raspberry Pi connection)
+# Serial Port Configuration
 serial_port = 'COM5'     # Define the COM port that the Arduino is connected to (change this for pi)
 baud_rate = 9600         # Define the baud rate for serial communication (This will match Arduino)
 
