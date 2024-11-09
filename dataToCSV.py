@@ -18,11 +18,14 @@ except serial.SerialException as e:
     print(f"Error: Could not open port {serial_port}. {e}")
     exit()
 
+
 # CSV file where the sensor data will be saved
 csv_filename = 'sensor_data.csv'
 
+
 # Check if file exists
 file_exists = os.path.exists(csv_filename)
+
 
 # Open the CSV file in append mode to continuously add new data without overwriting
 with open(csv_filename, mode='a', newline='') as csv_file:
@@ -53,10 +56,12 @@ with open(csv_filename, mode='a', newline='') as csv_file:
             else:
                 print("Incomplete or malformed data received, skipping entry.")
 
+    
     except KeyboardInterrupt:
         # Handle user interrupt (Ctrl+C) to stop the data collection loop
         print("Data collection stopped.")
 
+    
     finally:
         # Ensure the serial connection is properly closed
         arduino.close()
