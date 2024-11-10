@@ -1,6 +1,6 @@
 import os                                               # This library will provide functions to interact with the operating system, such as checking for file existence.
 import pickle                                           # This library will be used for saving and loading Python objects, like storing credentials
-from sqlite3 import DataError
+from sqlite3 import DataError                           # Used for handling data-related errors during operation
 import time                                             # Provides time-related functions like sleeping for a specific duration
 from urllib.request import Request                      # Handles HTTP requests and indirectly used for refreshing tokens.
 import serial                                           # This library provides functions to communicate with serial devices
