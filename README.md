@@ -4,7 +4,7 @@ Environmental Monitoring System
 
 This project involves the development of an environmental monitoring system that collects data from various sensors, processes the data, and presents predictions through a dashboard. 
 The system utilizes an Arduino (and Raspberry Pi) to interface with sensors, logs data in CSV format, uploads it to Google Drive, and employs predictive modeling techniques for analysis and visualization.
-
+ 
 **********Workflow Overview**********
 1. Sensor Data Collection:
 The system uses an Arduino (and Raspberry Pi) to read data from environmental sensors, such as the DHT11 (temperature and humidity) and MQ135 (air quality).
