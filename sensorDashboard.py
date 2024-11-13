@@ -4,8 +4,6 @@ from dash.dependencies import Output, Input
 import plotly.express as px
 import pickle
 import os
-import time
-import threading
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
