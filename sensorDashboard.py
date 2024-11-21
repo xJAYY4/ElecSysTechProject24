@@ -1,83 +1,126 @@
-import pandas as pd
-from dash import Dash, dcc, html
-from dash.dependencies import Output, Input
-import plotly.express as px
-import pickle
-import os
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import io
+import pandas as pd                                     # Data manipulation library for handling data in tables (DataFrame)
+from dash import Dash, dcc, html                        # Dash components for building web apps
+from dash.dependencies import Output, Input             # For setting up callback inputs/outputs
+import plotly.express as px                             # Plotly for data visualization
+import pickle                                           # Used for storing the credentials
+import os                                               # Provides functions for interacting with the operating system (file handling)
+from google_auth_oauthlib.flow import InstalledAppFlow  # For Google API authentication
+from google.auth.transport.requests import Request      # For handling token refresh requests
+from googleapiclient.discovery import build             # For accessing Google APIs (Drive API)
+from googleapiclient.http import MediaIoBaseDownload    # For downloading media from Google Drive
+import io                                               # For handling byte streams
 
-# Google Drive API setup
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-creds = None
+SCOPES = ['https://www.googleapis.com/auth/drive.file']  # Required scope for Google Drive file access
+CSV_FILENAME = 'sensor_data.csv'                         # Name of the CSV file to be downloaded
+CREDENTIALS_FILE = 'credentials.json'                    # Path to the Google API credentials file
+FILE_ID = 'file_id_here'                                 # ID of the file on Google Drive to be downloaded
 
-# Check if credentials are stored in token.pickle
-if os.path.exists('token.pickle'):
-    with open('token.pickle', 'rb') as token:
-        creds = pickle.load(token)
 
-# If there are no valid credentials, authenticate and save them
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json',
-            scopes=SCOPES
-        )
-        creds = flow.run_local_server(port=0)
-    with open('token.pickle', 'wb') as token:
-        pickle.dump(creds, token)
+def authenticate_google_drive():
+    """
+    Authenticates the user for Google Drive access using OAuth2 and returns
+    a service client for interacting with Google Drive API.
+    
+        - First checks if credentials exist in 'token.pickle'.
+        - If credentials are expired or invalid, it triggers the authentication flow.
+    """
+    creds = None
 
-# Initialize the Google Drive API client
-drive_service = build('drive', 'v3', credentials=creds)
+    # Check if credentials already exist (token.pickle stores the credentials)
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
 
-# Define the function to download the CSV from Google Drive
-def download_csv(file_id, filename='sensor_data.csv'):
+    # If there are no valid credentials or the token has expired, re-authenticate
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())  # Refresh expired credentials if possible
+        else:
+            # Start the OAuth2 authentication flow to get new credentials
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, scopes=SCOPES)
+            creds = flow.run_local_server(port=0)
+
+        # Save the credentials for future use (in 'token.pickle')
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    # Build and return the Google Drive API client
+    return build('drive', 'v3', credentials=creds)
+
+
+def download_csv(file_id, filename=CSV_FILENAME):
+    """
+    Downloads a CSV file from Google Drive using its file ID and saves it locally.
+    Args:
+    - file_id (str): The unique ID of the file on Google Drive.
+    - filename (str): The name of the local file where the CSV will be saved (default is 'sensor_data.csv').
+    
+    Returns:
+    - filename (str): The name of the saved file.
+    """
+    # Initialize Google Drive service to interact with the API
+    drive_service = authenticate_google_drive()
+
+    # Request the file from Google Drive
     request = drive_service.files().get_media(fileId=file_id)
-    file = io.BytesIO()
+    file = io.BytesIO()  # Using an in-memory byte stream to download the file
     downloader = MediaIoBaseDownload(file, request)
+
+    # Download the file in chunks until fully downloaded
     done = False
     while not done:
         status, done = downloader.next_chunk()
-    file.seek(0)
+
+    # Save the downloaded content into a local CSV file
+    file.seek(0)    # Move back to the start of the byte stream
     with open(filename, 'wb') as f:
         f.write(file.read())
+
     return filename
 
-# CSV file ID and interval for updates
-file_id = '1y6PWTviufN4LdqYNTW_BFDaa6OnVc7_1'
-csv_filename = download_csv(file_id)
 
-# Load data into DataFrame
-df = pd.read_csv(csv_filename, encoding='utf-8')
-df.columns = df.columns.str.replace('Temperature (�C)', 'Temperature (°C)', regex=False)
+def load_data():
+    """
+    Loads the downloaded CSV file into a pandas DataFrame for further processing.
 
-# Initialize Dash app
+    Returns:
+    - df (DataFrame): A pandas DataFrame containing the data from the CSV.
+    """
+    return pd.read_csv(CSV_FILENAME, encoding='utf-8')
+
+
+def create_figure(df, x_col, y_col, title):
+    """
+    Creates a line plot figure using Plotly Express.
+    Args:
+    - df (DataFrame): The pandas DataFrame containing the sensor data.
+    - x_col (str): The column name for the x-axis (typically 'Timestamp').
+    - y_col (str): The column name for the y-axis (sensor readings like 'Light Level (%)').
+    - title (str): The title of the plot.
+    
+    Returns:
+    - fig (plotly.graph_objects.Figure): A Plotly figure object for displaying the chart.
+    """
+    return px.line(df, x=x_col, y=y_col, title=title)
+
+
+# Initialize Dash 
 app = Dash(__name__)
 
-# App layout with separate graphs for each measurement over time
+# Define the layout of the app
 app.layout = html.Div([
-    html.H1("Sensor Data Dashboard"),
-    dcc.Interval(id='interval-component', interval=60*1000, n_intervals=0),  # Update every 60 seconds
+    html.H1("Sensor Data Dashboard"),  # Title of the dashboard
+    # Interval component to refresh the data every 60 seconds
+    dcc.Interval(id='interval-component', interval=60*1000, n_intervals=0),
 
-    # Graph 1: Light Level Over Time
+    # Graphs
     dcc.Graph(id='light-level-over-time'),
-    
-    # Graph 2: Temperature Over Time
     dcc.Graph(id='temperature-over-time'),
-    
-    # Graph 3: Humidity Over Time
     dcc.Graph(id='humidity-over-time'),
-    
-    # Graph 4: Gas Concentration Over Time
     dcc.Graph(id='gas-concentration-over-time')
 ])
 
-# Callback function to update the data and graphs
+
 @app.callback(
     [Output('light-level-over-time', 'figure'),
      Output('temperature-over-time', 'figure'),
@@ -85,20 +128,31 @@ app.layout = html.Div([
      Output('gas-concentration-over-time', 'figure')],
     [Input('interval-component', 'n_intervals')]
 )
+
+
 def update_graphs(n):
-    # Re-download the CSV file to get the latest data
-    download_csv(file_id, csv_filename)
-    df = pd.read_csv(csv_filename, encoding='utf-8')
-    df.columns = df.columns.str.replace('Temperature (�C)', 'Temperature (°C)', regex=False)
+    """
+    Callback function to update the graphs with the latest data every time
+    the Interval component triggers (every 60 seconds).
+    This function downloads the latest CSV, loads it into a DataFrame, 
+    and updates the four graphs accordingly.
+    """
+    # Download the latest data file from Google Drive
+    download_csv(FILE_ID)
 
-    # Update each graph with the new data
-    light_fig = px.line(df, x='Timestamp', y='Light Level (%)', title="Light Level Over Time")
-    temp_fig = px.line(df, x='Timestamp', y='Temperature (°C)', title="Temperature Over Time")
-    humidity_fig = px.line(df, x='Timestamp', y='Humidity (%)', title="Humidity Over Time")
-    gas_fig = px.line(df, x='Timestamp', y='Gas Concentration (MQ135)', title="Gas Concentration Over Time")
+    # Load the newly downloaded data into a pandas DataFrame
+    df = load_data()
 
+    # Create the four graphs based on the latest data
+    light_fig = create_figure(df, 'Timestamp', 'Light Level (%)', "Light Level Over Time")
+    temp_fig = create_figure(df, 'Timestamp', 'Temperature (C)', "Temperature Over Time")
+    humidity_fig = create_figure(df, 'Timestamp', 'Humidity (%)', "Humidity Over Time")
+    gas_fig = create_figure(df, 'Timestamp', 'Gas Concentration (MQ135)', "Gas Concentration Over Time")
+
+    # Return the updated figures for each graph
     return light_fig, temp_fig, humidity_fig, gas_fig
 
-# Run the dashboard
+
+# Run the Dash app server to launch the web dashboard
 if __name__ == '__main__':
     app.run_server(debug=True, host="127.0.0.1")
